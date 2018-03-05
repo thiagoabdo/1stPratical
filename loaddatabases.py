@@ -5,30 +5,27 @@ import numpy as np
 
 from PIL import Image
 
+import databases.yale
+
 cascadePath = "haarcascade_frontalface_default.xml"
 faceCascade = cv2.CascadeClassifier(cascadePath)
 
 
 recognizer = cv2.createLBPHFaceRecognizer()
 
-def yale_path(trainning=True):
-    path = './yale_faces'
-    imagePaths = [os.path.join(path,f) for f in  os.listdir(path) if not f.endswith('.sad') == trainning]
-    return imagePaths
+def get_average(images,size):
 
-def yale_nbr(image):
-    nbr = int(os.path.split(image)[1].split('.')[0].replace("subject",""))
-    return nbr
+    average = np.zeros(size, dtype='uint64')
+    for img in images:
+        resized = cv2.resize(img,size)
+        average = average + resized
+    average = average//len(images)
+    average = average.astype('uint8')
 
+    cv2.imshow("Average Face", average)
+    cv2.waitKey(6000)
 
-def orl_path(trainning=True):
-    path = './orl_faces'
-    imagesPaths = [os.path.join(r,f) for r,d,files in os.walk(path) for f in files if not f.endswith('10.pgm') == trainning]
-    return imagesPaths
-
-def orl_nbr(image):
-    nbr = int(os.path.split(os.path.split(image)[0])[1].replace("s","")) + 10000
-    return nbr
+    return average
 
 def get_images_labels(get_path, get_nbr):
     image_paths = get_path()
@@ -48,8 +45,8 @@ def get_images_labels(get_path, get_nbr):
         for (x, y, w, h) in faces:
             images.append(image[y: y+h, x:x +w])
             labels.append(nbr)
-            #cv2.imshow("adding faces to traning set...", image [y: y+h, x: x+w])
-            #cv2.waitKey(50)
+            cv2.imshow("adding faces to traning set...", image [y: y+h, x: x+w])
+            cv2.waitKey(50)
 
     return images, labels
 
@@ -68,23 +65,26 @@ def validation(get_path, get_nbr):
             if nbr_actual == nbr_predicted:
                 print "{} is Correctly reconized with confidence {}".format(nbr_actual, conf)
             else:
-                print "{} is Incorrect Recognized as {} {}".format(nbr_actual,nbr_predicted, conf)
+                print "{} is Incorrect Recognized as {} with confidence {}".format(nbr_actual,nbr_predicted, conf)
             #cv2.imshow("Recognizing Face", predict_image[y: y+h, x:x+w])
             #cv2.waitKey(1000)
 
 
 def main():
-
-    yale_images, yale_labels = get_images_labels(yale_path,yale_nbr)
+    
+    yale = Yale()
+    
+    yale_images, yale_labels = get_images_labels(yale.get_images_path,yale.get_nbr)
+    get_average(yale_images,(150,150))
     cv2.destroyAllWindows()
+    recognizer.train(yale_images, np.array(yale_labels))
+    validation(yale_path,yale_nbr)
+
 
     orl_images, orl_labels = get_images_labels(orl_path,orl_nbr)
+    get_average(orl_images,(75,75))
     cv2.destroyAllWindows()
-
-
-    recognizer.train(yale_images+orl_images, np.array(yale_labels+orl_labels))
-
-    validation(yale_path,yale_nbr)
+    recognizer.train(orl_images, np.array(orl_labels))
     validation(orl_path, orl_nbr)
 
 
