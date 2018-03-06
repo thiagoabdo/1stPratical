@@ -34,21 +34,25 @@ def orl_nbr(image):
     nbr = int(os.path.split(os.path.split(image)[0])[1].replace("s","")) + 10000
     return nbr
 
-def get_average(images,size):
+def get_average(images):
 
-    average = np.zeros(size, dtype='uint64')
+    average = np.zeros(images[0].shape, dtype='uint64')
     all_resized = []
     for img in images:
-        resized = cv2.resize(img,size)
-        average = average + resized
-        all_resized.append(resized)
+        average = average + img
     average = average//len(images)
     average = average.astype('uint8')
 
    # cv2.imshow("Average Face", average)
    # cv2.waitKey(6000)
 
-    return average,all_resized
+    return average
+
+def get_resized(images,size):
+    resizedImages = []
+    for img in images:
+        resizedImages.append(cv2.resize(img,size))
+    return resizedImages
 
 def get_images_labels(get_path, get_nbr):
     image_paths = get_path()
@@ -92,59 +96,58 @@ def validation(get_path, get_nbr):
             #cv2.imshow("Recognizing Face", predict_image[y: y+h, x:x+w])
             #cv2.waitKey(1000)
 
+def eigen_faces(images, average):
+    imgSize = images[0].shape
+    averageFlatten = average.flatten()
+    matrixA = np.zeros([len(images),len(averageFlatten)])
+    i=0
+    for img in images:
+        matrixA[i] = img.flatten() - averageFlatten
+        i=i+1
+    matrixAT = matrixA.transpose()
+    matrixC = np.matmul(matrixA, matrixAT)
+
+    eigen_val, eigen_vec = np.linalg.eig(matrixC)
+
+    eigen_val = eigen_val.real
+    eigen_vec = eigen_vec.real
+
+    sortedEigenVecIndex = eigen_val.argsort()[::-1]
+
+    for EigenIndex in sortedEigenVecIndex[:5]:
+        auto_eigen_vec = np.matmul(matrixAT, eigen_vec[EigenIndex])
+        auto_eigen_vec = preprocessing.minmax_scale(auto_eigen_vec, (0,255))
+        img = auto_eigen_vec.reshape(imgSize).astype('uint8')
+        cv2.imshow("eigen_faces", img)
+        cv2.waitKey(5000)
+
 
 def main():
 
     yale_images, yale_labels = get_images_labels(yale_path,yale_nbr)
     cv2.destroyAllWindows()
-    yale_average, yale_resized = get_average(yale_images,(150,150))
+    yale_resized = get_resized(yale_images,(150,150))
+    yale_average = get_average(yale_resized)
 
-    yaleAverageFlatten = yale_average.flatten()
-    matrixA = np.zeros([len(yale_images),len(yaleAverageFlatten)])
-    i=0
-    for img in yale_resized:
-        matrixA[i] = img.flatten() - yaleAverageFlatten
-        i=i+1
-    matrixAT = matrixA.transpose()
-    matrixC = np.matmul(matrixA, matrixAT)
-
-    eigen_values, eigen_vec = np.linalg.eig(matrixC)
-
-    #eigen_vec = (eigen_vec/eigen_vec.max())
-
-    eigen_values = eigen_values.real
-
-    biggest_value = [0,1,2,3,4]
-    i=0
-    for value in eigen_values:
-        for j in range(0,len(biggest_value)):
-            if value > biggest_value[j]:
-                biggest_value[j] = i
-                break
-        i=i+1
-
-    #pdb.set_trace()
-
-    for bg in biggest_value:
-        real_eigen_vector  = np.matmul(matrixAT, eigen_vec[bg])
-        real_eigen_vector = preprocessing.minmax_scale(real_eigen_vector.real, (0,255))
-        img = real_eigen_vector.reshape((150,150)).astype('uint8')
-        cv2.imshow("eigen_faces", img)
-        cv2.waitKey(5000)
-
-
-
+    eigen_faces(yale_resized,yale_average)
 
     cv2.destroyAllWindows()
+    cv2.waitKey(1)
+
 #    recognizer.train(yale_images, np.array(yale_labels))
- #   validation(yale_path,yale_nbr)
+#    validation(yale_path,yale_nbr)
 #
 #
-#    orl_images, orl_labels = get_images_labels(orl_path,orl_nbr)
-#    get_average(orl_images,(75,75))
-#    cv2.destroyAllWindows()
-#    recognizer.train(orl_images, np.array(orl_labels))
-#    validation(orl_path, orl_nbr)
+    orl_images, orl_labels = get_images_labels(orl_path,orl_nbr)
+    cv2.destroyAllWindows()
+    orl_resized = get_resized(orl_images,(75,75))
+    orl_average = get_average(orl_resized)
+
+    eigen_faces(orl_resized, orl_average)
+
+    cv2.destroyAllWindows()
+    #recognizer.train(orl_images, np.array(orl_labels))
+    #validation(orl_path, orl_nbr)
 
 
 
