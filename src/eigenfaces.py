@@ -3,24 +3,6 @@ import cv2
 import pdb
 import databases
 
-
-def validation(get_path, get_nbr):
-    image_paths = get_path(trainning=False)
-
-    for image_path in image_paths:
-        predict_image_pil = Image.open(image_path).convert('L')
-        predict_image = np.array(predict_image_pil, 'uint8')
-        faces = faceCascade.detectMultiScale(predict_image)
-        for (x, y,w ,h) in faces:
-            nbr_predicted, conf = recognizer.predict(predict_image[y: y+h, x:x+w])
-            nbr_actual = get_nbr(image_path)
-            if nbr_actual == nbr_predicted:
-                print "{} is Correctly reconized with confidence {}".format(nbr_actual, conf)
-            else:
-                print "{} is Incorrect Recognized as {} with confidence {}".format(nbr_actual,nbr_predicted, conf)
-            #cv2.imshow("Recognizing Face", predict_image[y: y+h, x:x+w])
-            #cv2.waitKey(1000)
-
 def main():
 
 #    yale_images, yale_labels = get_images_labels(yale_path,yale_nbr)
@@ -37,25 +19,32 @@ def main():
 #    recognizer.train(yale_images, np.array(yale_labels))
 #    validation(yale_path,yale_nbr)
 
-    print "YALE"
+    #print "YALE"
+    #yale = databases.Yale("./yale_faces")
+    #accuracy = {}
+    #for expression in yale.expressions:
+    #    imagesTest=[img for img in yale.get_all_images() if not img.endswith(expression)]
+    #    imagesValidate = [img for img in yale.get_all_images() if img.endswith(expression)]
+    #    print "Testing for expression({}): {}".format(len(imagesValidate),expression[1:])
+    #    yale.get_images(imagesTest)
+    #    yale.get_eigen_vectors(50)
+    #    yale.calculate_components()
+    #    accuracy[expression[1:]] = yale.calculate_distances(yale.return_images_labels_validate(imagesValidate))
 
-    yale = databases.Yale("./yale_faces")
-    yale.get_eigen_vectors(6)
-
-    cv2.destroyAllWindows()
-    cv2.waitKey(1)
-    cv2.waitKey(1)
-    cv2.waitKey(1)
-    cv2.waitKey(1)
-    cv2.waitKey(10)
-    cv2.waitKey(10)
-    cv2.waitKey(10)
-    cv2.waitKey(10)
+    #minAcc = min(accuracy,key=accuracy.get)
+    #maxAcc = max(accuracy,key=accuracy.get)
+    #print "\n\nWorst Accuracy in expression: {}({})\nBest Accuracy in expression {}({})".format(minAcc,accuracy[minAcc],maxAcc,accuracy[maxAcc])
 
     print "ORL"
 
     orl = databases.Orl("./orl_faces")
-    orl.get_eigen_vectors(5)
+    orl.get_buckets()
+
+
+#    orl = databases.Orl("./orl_faces")
+#    orl.get_eigen_vectors(20)
+#    orl.calculate_components()
+#    orl.calculate_distances(orl.get_images_labels_validate())
 
 
 if __name__ == "__main__":
